@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Happy Women's Day</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #fff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Dancing Script', cursive, sans-serif;
+        }
+
+        #svg {
+            width: 400px;
+            height: 400px;
+        }
+
+        .click-btn {
+            margin-top: 20px;
+            font-size: 35px;
+            font-weight: bold;
+            color: #d84a56;
+            cursor: pointer;
+            animation: bounce 1.5s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+            40% {transform: translateY(-10px);}
+            60% {transform: translateY(-5px);}
+        }
+
+        /* Ẩn hiện nội dung thiệp khi click */
+        .card-container {
+            display: none;
+            position: absolute;
+            width: 100%;
+            height: 100vh;
+            background-color: #f7d1d7;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SVG vẽ bông hồng -->
+    <svg id="svg" viewBox="0 0 500 500">
+        <!-- Đường dẫn SVG vẽ bông hồng sẽ hiện ra theo hiệu ứng stroke -->
+        <path id="rose" d="M250,350 C200,300 150,250 180,200 C210,150 260,180 250,120 C240,60 300,50 320,100 C340,150 290,200 320,250 C350,300 300,350 250,350 Z" fill="none" stroke="#d84a56" stroke-width="4"/>
+    </svg>
+
+    <div class="click-btn" onclick="openCard()">Click me now !</div>
+
+    <!-- Phần giao diện thiệp mở ra -->
+    <div class="card-container" id="cardContainer">
+        <h1 style="color: #d84a56; font-size: 40px;">Happy Women's Day</h1>
+        <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; max-width: 400px;">
+            <h2>Gửi mẹ!</h2>
+            <p>Hôm nay là ngày 20/10/2024. Xin gửi lời chúc tới người con yêu thương nhất. Luôn vui vẻ, luôn hạnh phúc và luôn may mắn trong cuộc sống, ngày càng xinh đẹp. Xin gửi tất cả lời chúc tốt đẹp đến với mẹ. Love Mom ❤️</p>
+        </div>
+    </div>
+
+    <script>
+        function openCard() {
+            document.getElementById('cardContainer').style.display = 'flex';
+        }
+    </script>
+
+</body>
+</html>
