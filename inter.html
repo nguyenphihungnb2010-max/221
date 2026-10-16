@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gửi Em Yêu</title>
+    <!-- Thư viện Three.js và Tween.js để làm hiệu ứng 3D không gian -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TrackballControls.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #050505;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* Menu điều khiển bên dưới (dạng nút bấm giống như trong video) */
+        #menu {
+            position: absolute;
+            bottom: 30px;
+            width: 100%;
+            text-align: center;
+            z-index: 100;
+        }
+
+        .menu-button {
+            background-color: transparent;
+            border: 1px solid rgba(255, 105, 180, 0.7);
+            color: #ffb6c1;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 20px;
+            margin: 0 5px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            backdrop-filter: blur(5px);
+        }
+
+        .menu-button:hover {
+            background-color: rgba(255, 105, 180, 0.3);
+            color: #fff;
+            box-shadow: 0 0 15px rgba(255, 105, 180, 0.5);
+        }
+
+        /* Giao diện Thư / Thiệp tỏ tình */
+        #letter-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: linear-gradient(135deg, #fff0f5, #ffe4e1);
+            color: #333;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(255, 105, 180, 0.6);
+            width: 320px;
+            z-index: 1000;
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-align: center;
+        }
+
+        #letter-modal.active {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        #letter-modal h2 {
+            color: #d81b60;
+            margin-top: 0;
+        }
+
+        #letter-modal p {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #555;
+        }
+
+        .close-btn {
+            background-color: #d81b60;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <!-- Các nút chuyển đổi hình khối 3D -->
+    <div id="menu">
+        <button class="menu-button" id="btn-table">Lưới Ảnh</button>
+        <button class="menu-button" id="btn-sphere">Quả Cầu</button>
+        <button class="menu-button" id="btn-helix">Xoắn Ốc</button>
+        <button class="menu-button" id="btn-grid">Không Gian</button>
+        <button class="menu-button" id="btn-letter">Mở Thư</button>
+    </div>
+
+    <!-- Hộp thoại hiển thị bức thư -->
+    <div id="letter-modal">
+        <h2>Gửi Em!</h2>
+        <p>Nhân ngày 8/3 (hoặc một ngày đặc biệt), chúc công chúa của anh luôn vui vẻ, hạnh phúc và xinh đẹp. Cảm ơn em vì đã đến bên anh, cùng anh viết nên những kỷ niệm tuyệt vời nhất! ❤️</p>
+        <button class="close-btn" onclick="toggleLetter(false)">Đóng lại</button>
+    </div>
+
+    <script>
+        // Danh sách link ảnh kỷ niệm (Bạn có thể thay thế bằng link ảnh của bạn và người ấy)
+        const images = [
+            'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=300',
+            'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=300',
+            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+            'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300',
+            'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300',
+            'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300',
+            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300',
+            'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300',
+        ];
+
+        let camera, scene, renderer, controls;
+        const objects = [];
+        const targets = { table: [], sphere: [], helix: [], grid: [] };
+
+        init();
+        animate();
+
+        function init() {
+            camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 10000);
+            camera.position.z = 3000;
+
+            scene = new THREE.Scene();
+
+            // Tạo các đối tượng ảnh hiển thị dạng thẻ 3D
+            for (let i = 0; i < 120; i++) {
+                const element = document.createElement('div');
+                element.className = 'element';
+                element.style.width = '120px';
+                element.style.height = '160px';
+                element.style.background = 'rgba(255,255,255,0.05)';
+                element.style.border = '1px solid rgba(255,192,203,0.3)';
+                element.style.boxShadow = '0 0 10px rgba(255,105,180,0.3)';
+                element.style.borderRadius = '8px';
+                element.style.overflow = 'hidden';
+
+                const imgIndex = i % images.length;
+                const img = document.createElement('img');
+                img.src = images[imgIndex];
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'cover';
+                element.appendChild(img);
+
+                const objectCSS = new THREE.CSS3DObject(element);
+                objectCSS.position.x = Math.random() * 4000 - 2000;
+                objectCSS.position.y = Math.random() * 4000 - 2000;
+                objectCSS.position.z = Math.random() * 4000 - 2000;
+                scene.add(objectCSS);
+
+                objects.push(objectCSS);
+            }
+
+            // --- BỐ CỤC 1: LƯỚI (TABLE) ---
+            for (let i = 0; i < objects.length; i++) {
+                const object = new THREE.Object3D();
+                object.position.x = (i % 12) * 140 - 770;
+                object.position.y = -(Math.floor(i / 12)) * 180 + 400;
+                object.position.z = 0;
+                targets.table.push(object);
+            }
+
+            // --- BỐ CỤC 2: QUẢ CẦU (SPHERE) ---
+            const vector = new THREE.Vector3();
+            const spherical = new THREE.Spherical();
+            for (let i = 0; i < objects.length; i++) {
+                const phi = Math.acos(-1 + (2 * i) / objects.length);
+                const theta = Math.sqrt(objects.length * Math.PI) * phi;
+                const object = new THREE.Object3D();
+                spherical.set(800, phi, theta);
+                object.position.setFromSpherical(spherical);
+                vector.copy(object.position).multiplyScalar(2);
+                object.lookAt(vector);
+                targets.sphere.push(object);
+            }
+
+            // --- BỐ CỤC 3: XOẮN ỐC (HELIX) ---
+            const helixSpherical = new THREE.Spherical();
+            for (let i = 0; i < objects.length; i++) {
+                const theta = i * 0.175 + Math.PI;
+                const y = -(i * 12) + 450;
+                const object = new THREE.Object3D();
+                helixSpherical.set(900, Math.PI / 2, theta);
+                object.position.setFromSpherical(helixSpherical);
+                object.position.y = y;
+                vector.x = object.position.x * 2;
+                vector.y = object.position.y;
+                vector.z = object.position.z * 2;
+                object.lookAt(vector);
+                targets.helix.push(object);
+            }
+
+            // --- BỐ CỤC 4: KHÔNG GIAN NGẪU NHIÊN (GRID) ---
+            for (let i = 0; i < objects.length; i++) {
+                const object = new THREE.Object3D();
+                object.position.x = ((i % 5) * 400) - 800;
+                object.position.y = (Math.floor(i / 5) % 5 * 400) - 800;
+                object.position.z = (Math.floor(i / 25)) * 400 - 1000;
+                targets.grid.push(object);
+            }
+
+            // Khởi tạo Renderer CSS3D
+            renderer = new THREE.CSS3DRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            // Điều khiển chuột xoay không gian
+            controls = new THREE.TrackballControls(camera, renderer.domElement);
+            controls.rotateSpeed = 0.5;
+            controls.minDistance = 500;
+            controls.maxDistance = 6000;
+            controls.addEventListener('change', render);
+
+            // Gắn sự kiện cho các nút
+            document.getElementById('btn-table').addEventListener('click', () => transition(targets.table, 2000));
+            document.getElementById('btn-sphere').addEventListener('click', () => transition(targets.sphere, 2000));
+            document.getElementById('btn-helix').addEventListener('click', () => transition(targets.helix, 2000));
+            document.getElementById('btn-grid').addEventListener('click', () => transition(targets.grid, 2000));
+            document.getElementById('btn-letter').addEventListener('click', () => toggleLetter(true));
+
+            // Mặc định chuyển sang hiệu ứng Quả cầu khi vừa mở trang
+            transition(targets.sphere, 2000);
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        // Hàm chuyển đổi giữa các khung hình (Morphing animation)
+        function transition(target, duration) {
+            TWEEN.removeAll();
+            for (let i = 0; i < objects.length; i++) {
+                const object = objects[i];
+                const targetObj = target[i];
+
+                new TWEEN.Tween(object.position)
+                    .to({ x: targetObj.position.x, y: targetObj.position.y, z: targetObj.position.z }, Math.random() * duration + duration)
+                    .easing(TWEEN.Easing.Exponential.InOut)
+                    .start();
+
+                new TWEEN.Tween(object.rotation)
+                    .to({ x: targetObj.rotation.x, y: targetObj.rotation.y, z: targetObj.rotation.z }, Math.random() * duration + duration)
+                    .easing(TWEEN.Easing.Exponential.InOut)
+                    .start();
+            }
+
+            new TWEEN.Tween(this)
+                .to({}, duration * 2)
+                .onUpdate(render)
+                .start();
+        }
+
+        function toggleLetter(show) {
+            const modal = document.getElementById('letter-modal');
+            if (show) {
+                modal.classList.add('active');
+            } else {
+                modal.classList.remove('active');
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            render();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            TWEEN.update();
+            controls.update();
+        }
+
+        function render() {
+            renderer.render(scene, scene.hasFog ? scene : scene); // Cập nhật cảnh render
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
